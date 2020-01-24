@@ -4,10 +4,10 @@ from struct import unpack
 from datetime import datetime, timedelta
 
 class RAR_FORMAT(Enum):
-    RARFMT_NONE = 0
-    RARFMT14 = 1
-    RARFMT15 = 2
-    RARFMT50 = 3
+    RARFMT_NONE =   0
+    RARFMT14 =      1
+    RARFMT15 =      2
+    RARFMT50 =      3
     RARFMT_FUTURE = 4
 
 
@@ -65,7 +65,7 @@ class FILEHEADER_FLAGS(IntFlag):
     EXTTIME =       0x1000
 
 
-class FILEHEADER_MASKS(Flag):
+class FILEHEADER_MASKS(IntFlag):
     WINDOWMASK =    0x00e0
     WINDOW64 =      0x0000
     WINDOW128 =     0x0020
@@ -198,7 +198,7 @@ class FileHeader:
         bytes = f.read(25)
         ds, lus, hs, fc, ft, uv, m, ns, fa = unpack("<IIBIIBBHI", bytes)
         fn = f.read(ns).decode("utf-8")
-        d = (self.__baseblock.Flags & FILEHEADER_MASKS.WINDOWMASK.value) == FILEHEADER_MASKS.DIRECTORY
+        d = (self.__baseblock.Flags & FILEHEADER_MASKS.WINDOWMASK) == FILEHEADER_MASKS.DIRECTORY
         self.__datasize = ds
         self.__lowunpsize = lus
         self.__hos = hs
@@ -207,7 +207,7 @@ class FileHeader:
         self.__unpver = uv
         self.__method = m
         self.__fileattr = fa
-        self.__winsize = 0 if d else 0x10000 << ((self.__baseblock.Flags & FILEHEADER_MASKS.WINDOWMASK.value) >> 5)
+        self.__winsize = 0 if d else 0x10000 << ((self.__baseblock.Flags & FILEHEADER_MASKS.WINDOWMASK) >> 5)
         self.__filename = fn
         self.__readexttime(f)
         self.__filedata = f.read(ds)
