@@ -2,6 +2,7 @@ from binascii import hexlify
 from enum import Enum, IntFlag, Flag
 from struct import unpack
 from datetime import datetime, timedelta
+from unpack import Unpack29
 
 class RAR_FORMAT(Enum):
     RARFMT_NONE =   0
@@ -210,7 +211,7 @@ class FileHeader:
         self.__winsize = 0 if d else 0x10000 << ((self.__baseblock.Flags & FILEHEADER_MASKS.WINDOWMASK) >> 5)
         self.__filename = fn
         self.__readexttime(f)
-        self.__filedata = f.read(ds)
+        unpacker = Unpack29(f.read(ds))
 
     def __readexttime(self, f):
         tbl = [None] * 4
