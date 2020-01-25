@@ -147,7 +147,7 @@ class Unpack29:
             if curbitlength < len(decodetable.DecodePos) and pos < size:
                 decodetable.QuickNum[code] = decodetable.DecodeNum[pos]
             else:
-                decodetable.QuickNum[Code] = 0
+                decodetable.QuickNum[code] = 0
 
     @property
     def DDecode(self):
@@ -158,5 +158,6 @@ class Unpack29:
         return self.__DBits
 
 if __name__ == '__main__':
-    pack = Unpack29()
+    test = bytearray((0x11,0xD9,0x5C,0x1C,0xC8,0x8F,0xCD,0x1D,0x59))
+    pack = Unpack29(test)
     print(pack.DDecode)

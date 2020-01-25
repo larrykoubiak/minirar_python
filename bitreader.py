@@ -6,7 +6,7 @@ class BitReader:
         self.__addr = 0
         self.__bit = 0
         if data is not None:
-            self.__data[:] = data
+            self.__data[0:len(data)] = data
 
     def AddBits(self, bits):
         bits += self.__bit
