@@ -190,6 +190,7 @@ class FileHeader:
         self.__filename = ""
         self.__filedata = None
         self.__dates = None
+        self.__unpacker = None
         if bb is not None:
             self.__baseblock = bb
         if f is not None:
@@ -211,7 +212,7 @@ class FileHeader:
         self.__winsize = 0 if d else 0x10000 << ((self.__baseblock.Flags & FILEHEADER_MASKS.WINDOWMASK) >> 5)
         self.__filename = fn
         self.__readexttime(f)
-        unpacker = Unpack29(f.read(ds))
+        self.__unpacker = Unpack29(f.read(ds))
 
     def __readexttime(self, f):
         tbl = [None] * 4
@@ -245,6 +246,22 @@ class FileHeader:
         y = (t >> 25) + 1980
         return datetime(y,mm,d, h,m,s)
 
+    def GetTableValues(self):
+        result = []
+        for k, v in self.Unpacker.UnpackBlockTables.items():
+            result.append("%s\t%s\t%s\t%d\t%d" % (self.Filename,k, "MaxNum", 0, v.MaxNum))
+            for i in range(len(v.DecodeLen)):
+                result.append("%s\t%s\t%s\t%d\t%d" % (self.Filename,k, "DecodeLen", i, v.DecodeLen[i]))
+            for i in range(len(v.DecodePos)):
+                result.append("%s\t%s\t%s\t%d\t%d" % (self.Filename,k, "DecodePos", i, v.DecodePos[i]))
+            result.append("%s\t%s\t%s\t%d\t%d" % (self.Filename,k, "QuickBits", 0, v.QuickBits))
+            for i in range(len(v.QuickLen)):
+                result.append("%s\t%s\t%s\t%d\t%d" % (self.Filename,k, "QuickLen", i, v.QuickLen[i]))
+            for i in range(len(v.QuickNum)):
+                result.append("%s\t%s\t%s\t%d\t%d" % (self.Filename,k, "QuickNum", i, v.QuickNum[i]))
+            for i in range(len(v.DecodeNum)):
+                result.append("%s\t%s\t%s\t%d\t%d" % (self.Filename,k, "DecodeNum", i, v.DecodeNum[i]))
+        return result
 
     @property
     def HeadCRC(self):
@@ -305,6 +322,10 @@ class FileHeader:
     @property
     def ModifiedDate(self):
         return self.__dates[0]
+
+    @property
+    def Unpacker(self):
+        return self.__unpacker
 
 
     def __str__(self):

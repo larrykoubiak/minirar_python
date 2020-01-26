@@ -2,6 +2,7 @@ import argparse
 from structs import RAR_FORMAT, HEADER_TYPE
 from structs import BaseBlock, MainHeader, FileHeader
 
+
 def read_signature(f):
     rarsig = bytearray([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07])
     sig = f.read(7)
@@ -15,9 +16,11 @@ def read_signature(f):
         else:
             return RAR_FORMAT.RARFMT_NONE
 
+
 def read_file(filename):
     f = open(filename, "rb")
     fmt = read_signature(f)
+    log = open(filename[:-4]+".log","w")
     if fmt != RAR_FORMAT.RARFMT_NONE:
         bb = BaseBlock(f)
         while bb.HeaderType != HEADER_TYPE.HEAD3_ENDARC:
@@ -27,9 +30,13 @@ def read_file(filename):
             elif bb.HeaderType == HEADER_TYPE.HEAD3_FILE:
                 fh = FileHeader(bb, f)
                 print(fh)
+                for r in fh.GetTableValues():
+                    log.write(r + "\n")
             else:
                 pass
             bb = BaseBlock(f)
+    f.close()
+    log.close()
 
 def main():
     parser = argparse.ArgumentParser(description='Unrar file')

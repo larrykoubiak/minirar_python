@@ -146,10 +146,7 @@ class Unpack29:
         self.__makedecodetables(Table[NC30:], self.__unpackblocktables['DD'], DC30)
         self.__makedecodetables(Table[NC30+DC30:], self.__unpackblocktables['LDD'], LDC30)
         self.__makedecodetables(Table[NC30+DC30+LDC30:], self.__unpackblocktables['RD'], RC30)
-        UnpOldTable[:] = Tablex 
-        for k, v in self.__unpackblocktables:
-            print("%s\t%")
-            for val in v.
+        UnpOldTable[:] = Table
         return True
 
     def __makedecodetables(self, lengthtable, decodetable : DecodeTable, size):
