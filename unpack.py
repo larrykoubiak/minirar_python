@@ -47,6 +47,7 @@ class Unpack29:
         self.__Bits = 0
         self.__initarrays()
         self.__bitreader : BitReader = None
+        self.__tablesread3 = False
         self.__unpackblocktables = {
             "LD": DecodeTable(),
             "DD": DecodeTable(),
@@ -54,6 +55,8 @@ class Unpack29:
             "RD": DecodeTable(),
             "BD": DecodeTable()
         }
+        self.__prevlowdist = 0
+        self.__lowdistrepcount = 0
         if data is not None:
             self.__bitreader = BitReader(data)
             self.__readTables30()
@@ -64,7 +67,7 @@ class Unpack29:
             BitLength = 0
             Slot = 0
             for I in range(len(DBitLengthCounts)):
-                for J in range(DBitLengthCounts[I]):
+                for _ in range(DBitLengthCounts[I]):
                     self.__DDecode[Slot] = Dist
                     self.__DBits[Slot] = BitLength
                     Slot += 1
@@ -80,8 +83,8 @@ class Unpack29:
             pass # BLOCK_PPM
         if (BitField & 0x4000) == 0: ##reset old table
             UnpOldTable = bytearray(HUFF_TABLE_SIZE30)
-        PrevLowDist = 0
-        LowDistRepCount = 0
+        self.__prevlowdist = 0
+        self.__lowdistrepcount = 0
         self.__bitreader.AddBits(2)
         I = 0
         while I < BC:
@@ -103,7 +106,51 @@ class Unpack29:
                 BitLength[I] = Length
             I += 1
         self.__makedecodetables(BitLength,self.__unpackblocktables["BD"], BC30)
-        ##TO DO : finish the readtable function
+        tablesize = HUFF_TABLE_SIZE30
+        i = 0
+        while i < tablesize:
+            number = self.__decodenumber(self.__unpackblocktables["BD"])
+            if number < 16:
+                Table[i] = (number + UnpOldTable[i]) & 0xf
+                i += 1
+            else:
+                if number < 18:
+                    n = 0
+                    if number == 16:
+                        n = (self.__bitreader.Read16() >> 13) + 3
+                        self.__bitreader.AddBits(3)
+                    else:
+                        n = (self.__bitreader.Read16() >> 9) + 11
+                        self.__bitreader.AddBits(7)
+                    if i == 0:
+                        return False
+                    else:
+                        while n > 0 and i < tablesize:
+                            n -= 1
+                            Table[i] = Table[i-1]
+                            i += 1
+                else:
+                    n = 0
+                    if number == 18:
+                        n = (self.__bitreader.Read16() >> 13) + 3
+                        self.__bitreader.AddBits(3)
+                    else:
+                        n = (self.__bitreader.Read16() >> 9) + 11
+                        self.__bitreader.AddBits(7)
+                    while n > 0 and i < tablesize:
+                        n -= 1
+                        Table[i] = 0
+                        i += 1
+        self.__tablesread3 = True
+        self.__makedecodetables(Table, self.__unpackblocktables['LD'], NC30)
+        self.__makedecodetables(Table[NC30:], self.__unpackblocktables['DD'], DC30)
+        self.__makedecodetables(Table[NC30+DC30:], self.__unpackblocktables['LDD'], LDC30)
+        self.__makedecodetables(Table[NC30+DC30+LDC30:], self.__unpackblocktables['RD'], RC30)
+        UnpOldTable[:] = Tablex 
+        for k, v in self.__unpackblocktables:
+            print("%s\t%")
+            for val in v.
+        return True
 
     def __makedecodetables(self, lengthtable, decodetable : DecodeTable, size):
         decodetable.MaxNum = size
@@ -143,11 +190,33 @@ class Unpack29:
             decodetable.QuickLen[code] = curbitlength
             dist = bitfield - decodetable.DecodeLen[curbitlength - 1]
             dist >>= (16 - curbitlength)
-            pos = decodetable.DecodePos[curbitlength] + dist
-            if curbitlength < len(decodetable.DecodePos) and pos < size:
-                decodetable.QuickNum[code] = decodetable.DecodeNum[pos]
+            if curbitlength < len(decodetable.DecodePos):
+                pos = decodetable.DecodePos[curbitlength] + dist
+                if pos < size:
+                    decodetable.QuickNum[code] = decodetable.DecodeNum[pos]
+                else:
+                    decodetable.QuickNum[code] = 0
             else:
                 decodetable.QuickNum[code] = 0
+
+    def __decodenumber(self, decodetable : DecodeTable):
+        bitfield = self.__bitreader.Read16() & 0xfffe
+        if bitfield < decodetable.DecodeLen[decodetable.QuickBits]:
+            code = bitfield >> (16 - decodetable.QuickBits)
+            self.__bitreader.AddBits(decodetable.QuickLen[code])
+            return decodetable.QuickNum[code]
+        bits = 15
+        for i in range(decodetable.QuickBits + 1, 15):
+            if bitfield < decodetable.DecodeLen[i]:
+                bits = i
+                break
+        self.__bitreader.AddBits(bits)
+        dist = bitfield - decodetable.DecodeLen[bits - 1]
+        dist >>= (16 - bits)
+        pos = decodetable.DecodePos[bits] + dist
+        if pos > decodetable.MaxNum:
+            pos = 0
+        return decodetable.DecodeNum[pos]
 
     @property
     def DDecode(self):
@@ -156,6 +225,10 @@ class Unpack29:
     @property
     def DBits(self):
         return self.__DBits
+
+    @property
+    def UnpackBlockTables(self):
+        return self.__unpackblocktables
 
 if __name__ == '__main__':
     test = bytearray((0x11,0xD9,0x5C,0x1C,0xC8,0x8F,0xCD,0x1D,0x59))
